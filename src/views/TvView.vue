@@ -17,16 +17,15 @@ let observer = null
 let isFetchingMore = false
 let searchDebounceTimer = null
 
-// Mapeamento de gêneros da UI -> array de IDs TMDb (cobre 28 vs 10759 etc)
 const subGenres = [
-  { id: 'action', name: "Ação & Aventura", tmdbIds: [10759, 28] },
-  { id: 'scifi', name: "Sci-Fi & Fantasia", tmdbIds: [10765, 878] },
-  { id: 'comedy', name: "Comédia", tmdbIds: [35] },
-  { id: 'drama', name: "Drama", tmdbIds: [18] },
-  { id: 'romance', name: "Romance", tmdbIds: [10749] },
-  { id: 'horror', name: "Terror", tmdbIds: [27] },
-  { id: 'adventure', name: "Aventura", tmdbIds: [12] },
-  { id: 'fantasy', name: "Fantasia", tmdbIds: [14] },
+  { id: 28, name: "Ação" },
+  { id: 12, name: "Aventura" },
+  { id: 35, name: "Comédia" },
+  { id: 18, name: "Drama" },
+  { id: 14, name: "Fantasia" },
+  { id: 878, name: "Ficção Científica" },
+  { id: 10749, name: "Romance" },
+  { id: 27, name: "Terror" },
 ]
 
 // Helper: monta string para with_genres (usa OR entre ids)

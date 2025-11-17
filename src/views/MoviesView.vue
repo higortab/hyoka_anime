@@ -73,7 +73,6 @@ function openMovie(movieId) {
 </template>
 
 <style scoped>
-/* ---------- TÍTULO ---------- */
 
 h1 {
   text-align: center;
@@ -84,8 +83,6 @@ h1 {
 }
 
 
-
-/* ---------- LISTA DE GÊNEROS ---------- */
 
 .genre-list {
   display: flex;
@@ -122,8 +119,6 @@ h1 {
 
 
 
-/* ---------- LISTA DE FILMES ---------- */
-
 .movie-list {
   display: flex;
   flex-wrap: wrap;
@@ -148,7 +143,7 @@ h1 {
   box-shadow: 0 0 0.8rem #455a08;
 }
 
-/* Poster */
+
 .movie-card img {
   width: 100%;
   height: 20rem;
@@ -156,7 +151,7 @@ h1 {
   border-bottom: 2px solid #e1e1e1;
 }
 
-/* Detalhes */
+
 .movie-title {
   padding: 0.5rem;
   font-size: 1rem;
@@ -166,16 +161,15 @@ h1 {
   height: 3rem;
 }
 
-/* Ajuste para caso o título seja longo */
+
 .movie-title {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  overflow: hidden;
+
 }
 
 
 
-/* ---------- RESPONSIVIDADE ---------- */
 
 @media (max-width: 768px) {
   .movie-card {

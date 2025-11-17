@@ -1,174 +1,239 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import api from '@/plugins/axios';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import api from '@/plugins/axios'
 import Loading from 'vue-loading-overlay'
-import { useGenreStore } from '@/stores/genre';
 
-  const genres = ref([]);
-  const genreStore = useGenreStore();
-  const isLoading = ref(false);
-  const series = ref([]);
-  const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR');
+// estado
+const isLoading = ref(false)
+const series = ref([])
+const totalPages = ref(1)
+const page = ref(1)
 
+const currentGenre = ref(null)
+const searchQuery = ref("")
+const observerTarget = ref(null)
 
-onMounted(async () => {
-  isLoading.value = true;
-  await genreStore.getAllGenres('tv');
-  genres.value = genreStore.genres;
-  isLoading.value = false;
-});
+let observer = null
+let isFetchingMore = false
+let searchDebounceTimer = null
 
-    const listSeries = async (genreId) => {
-      isLoading.value = true;
-      const response = await api.get('discover/tv', {
-          params: {
-              with_genres: genreId,
-              language: 'pt-BR'
-          }
-      });
-      series.value = response.data.results
-      isLoading.value = false;
+// Mapeamento de gêneros da UI -> array de IDs TMDb (cobre 28 vs 10759 etc)
+const subGenres = [
+  { id: 'action', name: "Ação & Aventura", tmdbIds: [10759, 28] },
+  { id: 'scifi', name: "Sci-Fi & Fantasia", tmdbIds: [10765, 878] },
+  { id: 'comedy', name: "Comédia", tmdbIds: [35] },
+  { id: 'drama', name: "Drama", tmdbIds: [18] },
+  { id: 'romance', name: "Romance", tmdbIds: [10749] },
+  { id: 'horror', name: "Terror", tmdbIds: [27] },
+  { id: 'adventure', name: "Aventura", tmdbIds: [12] },
+  { id: 'fantasy', name: "Fantasia", tmdbIds: [14] },
+]
 
-  };
-
-  function getGenreName(id) {
-  const genero = genres.value.find((genre) => genre.id === id);
-  return genero.name;
+// Helper: monta string para with_genres (usa OR entre ids)
+function buildWithGenresParam() {
+  if (!currentGenre.value) return 16 // só Animation
+  const item = subGenres.find(g => g.id === currentGenre.value)
+  if (!item) return 16
+  // garante que 16 (Animation) esteja incluído junto com os tmdbIds (uso OR)
+  const allIds = Array.from(new Set([16, ...item.tmdbIds]))
+  // OR é representado por '|' no discover endpoint
+  return allIds.join('|')
 }
 
+// Função principal: busca via discover (padrão) ou search (quando houver query)
+async function fetchFromApi(isLoadMore = false) {
+  if (isFetchingMore) return
+  isFetchingMore = true
+  isLoading.value = !isLoadMore
+
+  try {
+    let response
+
+    // Se houver query de busca, usar search/tv (pesquisa global)
+    if (searchQuery.value && searchQuery.value.trim().length > 0) {
+      response = await api.get("search/tv", {
+        params: {
+          query: searchQuery.value.trim(),
+          language: "pt-BR",
+          page: page.value,
+          include_adult: false,
+        }
+      })
+    } else {
+      // discover com with_genres montado (inclui 16 e IDs mapeados)
+      response = await api.get("discover/tv", {
+        params: {
+          with_genres: buildWithGenresParam(),
+          with_origin_country: "JP",
+          with_original_language: "ja",
+          language: "pt-BR",
+          sort_by: "popularity.desc",
+          page: page.value
+        }
+      })
+    }
+
+    let results = response.data.results || []
+
+    // OBS: alguns títulos podem não ter poster_path ou nome no campo `name` (usar fallback)
+    results = results.map(r => ({
+      id: r.id,
+      name: r.name ?? r.original_name ?? r.title ?? "—",
+      poster_path: r.poster_path,
+      genre_ids: r.genre_ids || [],
+      overview: r.overview || "",
+      original_name: r.original_name || ""
+    }))
+
+    if (isLoadMore) {
+      // evita duplicatas por id
+      const existingIds = new Set(series.value.map(s => s.id))
+      const newItems = results.filter(r => !existingIds.has(r.id))
+      series.value = [...series.value, ...newItems]
+    } else {
+      series.value = results
+    }
+
+    totalPages.value = response.data.total_pages || 1
+  } catch (err) {
+    console.error("Erro ao buscar séries:", err)
+  } finally {
+    isLoading.value = false
+    isFetchingMore = false
+  }
+}
+
+// wrapper que decide se é load more
+function listAnimeSeries(isLoadMore = false) {
+  fetchFromApi(isLoadMore)
+}
+
+// watch: ao mudar gênero -> reset página e lista e buscar
+watch(currentGenre, () => {
+  page.value = 1
+  series.value = []
+  listAnimeSeries(false)
+})
+
+// watch: busca com debounce, reset pagina/lista
+watch(searchQuery, () => {
+  // debounce simples: 500ms
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    page.value = 1
+    series.value = []
+    listAnimeSeries(false)
+  }, 500)
+})
+
+// Observer para infinite scroll
+function initObserver() {
+  observer = new IntersectionObserver(entries => {
+    const entry = entries[0]
+    if (entry && entry.isIntersecting && page.value < totalPages.value && !isFetchingMore) {
+      page.value++
+      listAnimeSeries(true)
+    }
+  }, {
+    root: null,
+    rootMargin: '200px', // carrega antes de chegar no fim
+    threshold: 0.1
+  })
+
+  if (observerTarget.value) observer.observe(observerTarget.value)
+}
+
+onMounted(() => {
+  listAnimeSeries(false)
+  initObserver()
+})
+
+onBeforeUnmount(() => {
+  if (observer && observerTarget.value) observer.unobserve(observerTarget.value)
+})
 </script>
 
 <template>
-  <h1>Programas de TV</h1>
+  <h1>Séries de Anime</h1>
 
-  <Loading v-model:active="isLoading" is-full-page />
+  <loading v-model:active="isLoading" is-full-page />
 
+  <input
+    v-model="searchQuery"
+    placeholder="Buscar anime (use 3+ caracteres para melhores resultados)..."
+    class="search-input"
+  />
 
-<div class="genre-list">
-  <span
-    v-for="genre in genres"
-    :key="genre.id"
-    @click="listSeries(genre.id)"
-  >
-    {{ genre.name }}
-  </span>
-</div>
+  <div class="genre-list">
+    <span
+      v-for="genre in subGenres"
+      :key="genre.id"
+      @click="() => { page = 1; currentGenre = genre.id }"
+      :class="{ active: genre.id === currentGenre }"
+      class="genre-item"
+    >
+      {{ genre.name }}
+    </span>
 
-  <div class="tv-list">
-
-    <div v-for="tv in series" :key="tv.id" class="tv-card">
-      <img
-      :src="`https://image.tmdb.org/t/p/w500${tv.poster_path}`"
-      :alt="tv.title"
-    />
-
-       <div class="serie-details">
-      <p class="serie-title">{{ tv.original_name}}</p>
-      <p class="serie-release-date">{{ formatDate(tv.first_air_date) }}</p>
-      <p class="serie-genres">
-        <span v-for="genre_id in tv.genre_ids" :key="genre_id">
-          {{ getGenreName(genre_id) }}
-        </span>
-      </p>
-    </div>
-    </div>
-
+    <span @click="() => { page = 1; currentGenre = null }" :class="{ active: currentGenre === null }" class="genre-item">
+      Todos
+    </span>
   </div>
 
+  <div class="movie-list">
+    <div v-for="s in series" :key="s.id" class="movie-card">
+      <img :src=" s.poster_path ? `https://image.tmdb.org/t/p/w500${s.poster_path}` : 'https://via.placeholder.com/150x225?text=Sem+Imagem' " />
+      <p class="movie-title">{{ s.name }}</p>
+      <!-- mostra gêneros como IDs (pode trocar para nomes se quiser buscar /genre/tv/list) -->
+      <small v-if="s.genre_ids && s.genre_ids.length">Genres: {{ s.genre_ids.join(', ') }}</small>
+    </div>
+  </div>
+
+  <!-- elemento invisível para infinite scroll -->
+  <div ref="observerTarget" class="scroll-trigger"></div>
 </template>
 
 <style scoped>
 .genre-list {
   display: flex;
-  flex-direction: row;
+  gap: 10px;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.2rem;
-  margin-bottom: 2%;
-  margin-top: 2%;
+  margin: 20px 0;
 }
-
-.genre-list span {
-  background-color: #748708;
-  border-radius: 0.5rem;
-  padding: 0.2rem 0.5rem;
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.genre-list span:hover {
+.genre-item {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eee;
   cursor: pointer;
-  background-color: #455a08;
-  box-shadow: 0 0 0.5rem #748708;
 }
-
-  .genre-item {
-    background-color: #5d6424;
-    border-radius: 1rem;
-    padding: 0.5rem 1rem;
-    align-self: center;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-  }
-
-  .genre-item:hover {
-    cursor: pointer;
-    background-color: #7d8a2e;
-    box-shadow: 0 0 0.5rem #5d6424;
-  }
-
-  .tv-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
+.genre-item.active {
+  background: #008cff;
+  color: white;
 }
-
-.tv-card {
-  width: 15rem;
-  height: 30rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: 0 0 0.5rem #000;
-}
-
-.tv-card img {
+.search-input {
   width: 100%;
-  height: 20rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 0 0.5rem #000;
+  padding: 10px;
+  margin: 15px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
-
-.serie-details {
-  padding: 0 0.5rem;
+.movie-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 150px);
+  gap: 20px;
 }
-
-.serie-title {
-  font-size: 1.1rem;
-  font-weight: bold;
-  line-height: 1.3rem;
-  height: 3.2rem;
+.movie-card img {
+  width: 150px;
+  height: 225px;
+  object-fit: cover;
+  border-radius: 8px;
 }
-
-.serie-details .serie-genres {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
+.movie-title {
+  text-align: center;
+  margin-top: 8px;
 }
-
-.serie-details .serie-genres span {
-  background-color: #748708;
-  border-radius: 0.5rem;
-  padding: 0.2rem 0.5rem;
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: bold;
-  margin-top: 2%;
-  margin-left: 2%;
+.scroll-trigger {
+  width: 100%;
+  height: 1px;
 }
 </style>

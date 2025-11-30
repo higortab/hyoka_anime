@@ -131,16 +131,15 @@ h1 {
 .movie-card {
   width: 15rem;
   height: 29rem;
-  background-color: #fff;
-  border-radius: 0.6rem;
+  background-color: #EE4646;
   overflow: hidden;
-  box-shadow: 0 0 0.5rem #000;
+  box-shadow: 0 0 0.5rem #EE4646;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .movie-card:hover {
   transform: scale(1.03);
-  box-shadow: 0 0 0.8rem #455a08;
+  box-shadow: 0 0 8rem #EE4646;
 }
 
 
@@ -148,7 +147,7 @@ h1 {
   width: 100%;
   height: 20rem;
   object-fit: cover;
-  border-bottom: 2px solid #e1e1e1;
+
 }
 
 

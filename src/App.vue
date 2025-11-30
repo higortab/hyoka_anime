@@ -34,7 +34,7 @@
 
 <style scoped>
 header {
-  height: 10%;
+  height: 8%;
   display: flex;
   background-color: black;
   color: #fff;
@@ -92,5 +92,6 @@ footer {
   background-color: #EE4646;
   padding: 5%;
 }
+
 
 </style>

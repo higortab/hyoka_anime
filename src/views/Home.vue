@@ -106,8 +106,10 @@ onBeforeUnmount(() => stopAutoplay());
     <div class="info-panel">
       <h1>{{ movies[currentIndex].title }}</h1>
 
+      <p class="overview"> {{ movies[currentIndex].overview || "Sem descrição disponível." }} </p>
 
       <p class="rating">⭐ {{ movies[currentIndex].vote_average.toFixed(1) }}</p>
+
 
       <button class="info-btn-main" @click="openMovie(movies[currentIndex].id)">
         Veja informações sobre o filme

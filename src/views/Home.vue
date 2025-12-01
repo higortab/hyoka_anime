@@ -148,7 +148,7 @@ onBeforeUnmount(() => stopAutoplay());
   </div>
 </template>
 
-<style scoped>
+<style>
 .slider-container {
   position: relative;
   width: 100%;

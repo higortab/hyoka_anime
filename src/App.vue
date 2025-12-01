@@ -5,7 +5,7 @@
 <template>
   <header>
   <div class="img">
-    <a href="/"><img src="../HEADER/logo.png" alt="" style="width: 30%; height: auto;"></a>
+    <a href="/"><img src="/HEADER/logo.png" alt="" style="width: 30%; height: auto;"></a>
   </div>
   <div class="nav">
     <nav>
@@ -36,7 +36,7 @@
   </footer>
 </template>
 
-<style scoped>
+<style >
 header {
   height: 8%;
   display: flex;

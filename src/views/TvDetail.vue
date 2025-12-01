@@ -218,7 +218,7 @@ onMounted(() => {
                 {{ tvStore.currentTv.vote_average?.toFixed(1) || 'N/A' }}
               </span>
               <span v-if="tvStore.currentTv.number_of_seasons" class="seasons">
-               
+
                 {{ tvStore.currentTv.number_of_seasons }} temporada{{ tvStore.currentTv.number_of_seasons > 1 ? 's' : '' }}
               </span>
             </div>
@@ -295,7 +295,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .tv-page {
   width: 100%;
   color: white;

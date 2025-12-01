@@ -218,7 +218,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .movie-page {
   width: 100%;
   color: white;

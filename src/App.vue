@@ -28,7 +28,11 @@
   </main>
 
   <footer>
-    <h1>footer</h1>
+    <img src="/HEADER/logoBlack.png" alt="" style="width: 10%; height: auto;">
+    <p>&copy; Todos os direitos reservados</p>
+    <div>
+
+    </div>
   </footer>
 </template>
 
@@ -91,6 +95,9 @@ div {
 footer {
   background-color: #EE4646;
   padding: 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 

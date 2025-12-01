@@ -10,7 +10,6 @@ const props = defineProps({
   },
 });
 
-
 const currentImageIndex = ref(0);
 const isModalOpen = ref(false);
 const selectedImagePath = ref('');
@@ -18,7 +17,6 @@ const selectedImagePath = ref('');
 onMounted(async () => {
   await movieStore.fetchAllMovieData(props.movieId);
 });
-
 
 const certification = computed(() => {
   if (!movieStore.currentMovie.release_dates?.results) return null;
@@ -31,7 +29,6 @@ const certification = computed(() => {
     return usRelease.release_dates[0].certification;
   }
 
-
   for (const country of movieStore.currentMovie.release_dates.results) {
     if (country.release_dates?.[0]?.certification) {
       return country.release_dates[0].certification;
@@ -41,16 +38,13 @@ const certification = computed(() => {
   return null;
 });
 
-
 const genres = computed(() => {
   return movieStore.currentMovie.genres || [];
 });
 
-
 const carouselImages = computed(() => {
   return movieStore.movieImages?.backdrops?.slice(0, 10) || [];
 });
-
 
 const nextImage = () => {
   if (carouselImages.value.length === 0) return;
@@ -66,7 +60,6 @@ const goToImage = (index) => {
   currentImageIndex.value = index;
 };
 
-
 const showImageModal = (imagePath) => {
   selectedImagePath.value = imagePath;
   isModalOpen.value = true;
@@ -75,7 +68,6 @@ const showImageModal = (imagePath) => {
 const closeModal = () => {
   isModalOpen.value = false;
 };
-
 
 let carouselInterval;
 
@@ -94,14 +86,12 @@ const stopAutoCarousel = () => {
 };
 
 onMounted(() => {
-
   startAutoCarousel();
 });
 </script>
 
 <template>
   <div class="movie-page">
-
     <div class="backdrop" :style="{
       backgroundImage: movieStore.currentMovie.backdrop_path
         ? `url(https://image.tmdb.org/t/p/original${movieStore.currentMovie.backdrop_path})`
@@ -152,14 +142,13 @@ onMounted(() => {
             </span>
             <span v-if="movieStore.currentMovie.budget" class="budget">
               <img src="/HEADER/dollar.png" alt="Orçamento">
-              ${{ movieStore.currentMovie.budget.toLocaleString() }}
+              ${{ movieStore.currentMovie.budget.toLocaleString('pt-BR') }}
             </span>
           </div>
 
           <p v-if="movieStore.currentMovie.overview" class="overview">
             {{ movieStore.currentMovie.overview }}
           </p>
-
         </div>
       </div>
     </div>
@@ -185,22 +174,21 @@ onMounted(() => {
       </div>
 
       <div class="carousel-container" @mouseenter="stopAutoCarousel" @mouseleave="startAutoCarousel">
-
-        <button class="carousel-btn prev-btn" @click="prevImage" :disabled="carouselImages.length <= 1">
+        <button class="carousel-btn prev-btn" @click="prevImage" :disabled="carouselImages.length <= 1"
+          aria-label="Imagem anterior">
           &#10094;
         </button>
 
-       
         <div class="carousel-slide" @click="showImageModal(carouselImages[currentImageIndex].file_path)">
           <img :src="`https://image.tmdb.org/t/p/w1280${carouselImages[currentImageIndex].file_path}`"
             :alt="`Imagem ${currentImageIndex + 1} de ${movieStore.currentMovie.title}`" class="carousel-image"
             loading="lazy" />
         </div>
 
-        <button class="carousel-btn next-btn" @click="nextImage" :disabled="carouselImages.length <= 1">
+        <button class="carousel-btn next-btn" @click="nextImage" :disabled="carouselImages.length <= 1"
+          aria-label="Próxima imagem">
           &#10095;
         </button>
-
 
         <div class="carousel-dots">
           <button v-for="(_, index) in carouselImages" :key="index" class="dot"
@@ -210,20 +198,19 @@ onMounted(() => {
         </div>
       </div>
 
-
       <div class="thumbnails-container">
         <div v-for="(image, index) in carouselImages" :key="index" class="thumbnail-wrapper"
-          :class="{ active: index === currentImageIndex }" @click="goToImage(index)">
+          :class="{ active: index === currentImageIndex }" @click="goToImage(index)"
+          :aria-label="`Visualizar imagem ${index + 1}`">
           <img :src="`https://image.tmdb.org/t/p/w300${image.file_path}`"
             :alt="`Miniatura ${index + 1}`" class="thumbnail" loading="lazy" />
         </div>
       </div>
     </section>
 
-
     <div v-if="isModalOpen" class="image-modal" @click="closeModal">
       <div class="modal-content" @click.stop>
-        <button class="close-modal" @click="closeModal">&times;</button>
+        <button class="close-modal" @click="closeModal" aria-label="Fechar visualização">&times;</button>
         <img :src="`https://image.tmdb.org/t/p/original${selectedImagePath}`" alt="Imagem em tela cheia"
           class="modal-image" />
       </div>
@@ -600,7 +587,6 @@ h1 {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
@@ -617,7 +603,6 @@ h1 {
   from {
     transform: scale(0.8);
   }
-
   to {
     transform: scale(1);
   }

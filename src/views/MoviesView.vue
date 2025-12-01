@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const isLoading = ref(false)
 const movies = ref([])
+const searchQuery = ref("")
 
 const subGenres = [
   { id: 28, name: "Ação" },
@@ -42,14 +43,47 @@ async function listAnimeMovies(extraGenreId = null) {
 
 function openMovie(movieId) {
   router.push({ name: 'MovieDetails', params: { movieId } }); }
+
+
+async function searchAnime() {
+  if (!searchQuery.value.trim()) {
+    listAnimeMovies(currentGenre.value)
+    return
+  }
+
+  isLoading.value = true
+
+  const response = await api.get("search/movie", {
+    params: {
+      query: searchQuery.value,
+      language: "pt-BR",
+      sort_by: "popularity.desc"
+    }
+  })
+
+  // 🔥 FILTRA SÓ ANIMES JAPONESES
+  movies.value = response.data.results.filter(movie =>
+    movie.genre_ids?.includes(16) && // animação
+    movie.original_language === "ja" // japonês
+  )
+
+  isLoading.value = false
+}
+
+
 </script>
 
 <template>
-  <h1>Filmes</h1>
 
   <loading v-model:active="isLoading" is-full-page />
-
+<div class="filmes">
   <div class="genre-list">
+      <input
+        v-model="searchQuery"
+        @input="searchAnime"
+        placeholder="Buscar anime"
+        class="search-input"
+      />
     <span
       v-for="genre in subGenres"
       :key="genre.id"
@@ -67,70 +101,73 @@ function openMovie(movieId) {
       <img :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
       @click="openMovie(movie.id)"
       />
-      <p class="movie-title">{{ movie.title }}</p>
+      <h3 class="movie-title">{{ movie.title }}</h3>
+
+          <p class="movie-rating">⭐ {{ movie.vote_average.toFixed(1) }}</p>
+
+          <p class="movie-genres">{{ movie.genre_names?.join(', ') }}</p>
     </div>
   </div>
+</div>
 </template>
 
 <style scoped>
 
-h1 {
-  text-align: center;
-  font-size: 2rem;
-  margin-top: 1rem;
-  color: #2c2c2c;
-  font-weight: bold;
+.filmes {
+  display: flex;
+  margin-block-start: 5%;
 }
+
 
 
 
 .genre-list {
+  height: 2%;
+  width: 30%;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  margin: 1.5rem 0;
+  align-items: start;
+  margin-left: 3%;
+  background-color: #EE4646;
+  padding: 4% 5% 10% 1%;
+  margin-bottom: 5%;
+  font-family: 'Michroma';
+  font-size: 120%;
 }
 
 .genre-item {
-  background-color: #748708;
-  border-radius: 0.5rem;
   padding: 0.3rem 0.7rem;
-  color: #fff;
+  color: white;
   font-size: 0.85rem;
-  font-weight: bold;
   transition: 0.2s ease;
+  margin-bottom: 2%;
 }
 
-.genre-item:hover {
-  cursor: pointer;
-  background-color: #455a08;
-  box-shadow: 0 0 0.5rem #748708;
+input {
+  background-color: #EE4646;
+  border: 2px solid black;
+  border-radius: 10px;
+  height: 30px;
+  width: 80%;
+  padding: 2%;
+  margin-bottom: 4%;
 }
-
-.genre-item.active {
-  background-color: #67b086;
-  color: #000;
-  font-weight: bolder;
-  border: 1px solid #abc322;
-}
-
 
 
 .movie-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1.2rem;
-  justify-content: center;
   padding-bottom: 2rem;
+  justify-content: center;
+  width: 70%;
 }
 
 /* Cartão */
 .movie-card {
-  width: 15rem;
-  height: 29rem;
+  width: 25%;
+  height: auto;
   background-color: #EE4646;
   overflow: hidden;
   box-shadow: 0 0 0.5rem #EE4646;

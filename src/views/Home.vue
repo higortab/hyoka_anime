@@ -1,19 +1,13 @@
 <script setup>
-/* -------------------------------------------
-   IMPORTS
-------------------------------------------- */
+
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
-/* -------------------------------------------
-   ROUTER
-------------------------------------------- */
+
 const router = useRouter();
 
-/* -------------------------------------------
-   SLIDER PRINCIPAL (FULLSCREEN)
-------------------------------------------- */
+
 const movies = ref([]);
 const currentIndex = ref(0);
 let autoplayInterval = null;
@@ -53,9 +47,7 @@ function stopAutoplay() {
   clearInterval(autoplayInterval);
 }
 
-/* -------------------------------------------
-   LANÇAMENTOS – CARROSSEL HORIZONTAL
-------------------------------------------- */
+
 const releases = ref([]);
 
 async function getAnimeReleases() {
@@ -73,11 +65,6 @@ async function getAnimeReleases() {
 
 
 
-
-
-/* -------------------------------------------
-   LIFECYCLE
-------------------------------------------- */
 onMounted(() => {
   showMovieData();
   startAutoplay();
@@ -121,7 +108,7 @@ onBeforeUnmount(() => stopAutoplay());
     <button class="nav-btn right" @click="nextMovie">›</button>
   </div>
 
-  <!-- ===================== LANÇAMENTOS ===================== -->
+  <!--LANÇAMENTOS -->
  <div class="releases-section">
 
       <h2 class="section-title" style="font-family: 'Michroma';">Lançamentos</h2>
@@ -246,9 +233,7 @@ onBeforeUnmount(() => stopAutoplay());
 }
 
 
-/* ============================================================
-   ◀ ▶ NAVEGAÇÃO DO SLIDE
-   ============================================================ */
+/*NAVEGAÇÃO DO SLIDE */
 .nav-btn {
   position: absolute;
   top: 0;
@@ -260,7 +245,7 @@ onBeforeUnmount(() => stopAutoplay());
   cursor: pointer;
   z-index: 4;
   transition: var(--transition-fast);
-  color: transparent; /* invisível até hover */
+  color: transparent;
 }
 
 .slider-container:hover .nav-btn {
@@ -275,9 +260,7 @@ onBeforeUnmount(() => stopAutoplay());
 .right { right: 0; }
 
 
-/* ============================================================
-   🟧 ANIMAÇÕES
-   ============================================================ */
+/* ANIMAÇÕES*/
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: opacity 0.6s ease;
@@ -289,7 +272,7 @@ onBeforeUnmount(() => stopAutoplay());
 }
 
 
-/* --- SECTION --- */
+/*SECTION */
 .releases-section {
   padding: 0 20px;
   background-color: black;
@@ -304,7 +287,7 @@ onBeforeUnmount(() => stopAutoplay());
   margin-bottom: 15px;
 }
 
-/* --- LISTA --- */
+/*LISTA */
 .release-list {
   display: flex;
   gap: 18px;

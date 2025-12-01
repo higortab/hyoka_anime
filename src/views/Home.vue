@@ -1,13 +1,9 @@
 <script setup>
-
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 
-
 const router = useRouter();
-
-
 const movies = ref([]);
 const currentIndex = ref(0);
 let autoplayInterval = null;
@@ -47,7 +43,6 @@ function stopAutoplay() {
   clearInterval(autoplayInterval);
 }
 
-
 const releases = ref([]);
 
 async function getAnimeReleases() {
@@ -63,7 +58,28 @@ async function getAnimeReleases() {
   }
 }
 
+function getImageUrl(posterPath) {
+  return posterPath
+    ? `https://image.tmdb.org/t/p/w300${posterPath}`
+    : '/placeholder-poster.jpg';
+}
 
+function formatRating(voteAverage) {
+  return voteAverage ? voteAverage.toFixed(1) : 'N/A';
+}
+
+function formatYear(releaseDate) {
+  return releaseDate
+    ? new Date(releaseDate).getFullYear()
+    : 'N/A';
+}
+
+function getRatingColor(voteAverage) {
+  if (voteAverage >= 8) return '#21d07a';
+  if (voteAverage >= 7) return '#d2d531';
+  if (voteAverage >= 6) return '#f9c22e';
+  return '#e44d4d';
+}
 
 onMounted(() => {
   showMovieData();
@@ -74,14 +90,8 @@ onMounted(() => {
 onBeforeUnmount(() => stopAutoplay());
 </script>
 
-
-
-
 <template>
-
-
   <div class="slider-container" v-if="movies.length">
-
     <transition name="slide-fade" mode="out-in">
       <div
         :key="movies[currentIndex].id"
@@ -92,71 +102,61 @@ onBeforeUnmount(() => stopAutoplay());
 
     <div class="info-panel">
       <h1>{{ movies[currentIndex].title }}</h1>
-
-      <p class="overview"> {{ movies[currentIndex].overview || "Sem descrição disponível." }} </p>
-
+      <p class="overview">{{ movies[currentIndex].overview || "Sem descrição disponível." }}</p>
       <p class="rating">⭐ {{ movies[currentIndex].vote_average.toFixed(1) }}</p>
-
-
       <button class="info-btn-main" @click="openMovie(movies[currentIndex].id)">
         Veja informações sobre o filme
       </button>
     </div>
 
-
     <button class="nav-btn left" @click="previousMovie">‹</button>
     <button class="nav-btn right" @click="nextMovie">›</button>
   </div>
 
-  <!--LANÇAMENTOS -->
- <div class="releases-section">
-
-      <h2 class="section-title" style="font-family: 'Michroma';">Lançamentos</h2>
-
+  <div class="releases-section">
+    <h2 class="section-title">Lançamentos</h2>
     <div class="release-list">
-
-      <div v-for="movie in releases" :key="movie.id" class="movie-card">
-
-        <img
-          class="movie-poster"
-          :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
-          :alt="movie.title"
-          @click="openMovie(movie.id)"
-
-        />
-
-        <div class="release-footer">
-          <h3 class="movie-title">{{ movie.title }}</h3>
-
-          <p class="movie-rating">⭐ {{ movie.vote_average.toFixed(1) }}</p>
-
-          <p class="movie-genres">
-            {{ movie.genre_names?.join(', ') }}
-          </p>
+      <div
+        v-for="movie in releases"
+        :key="movie.id"
+        class="movie-card"
+        @click="openMovie(movie.id)"
+      >
+        <div class="poster-container">
+          <img
+            class="movie-poster"
+            :src="getImageUrl(movie.poster_path)"
+            :alt="movie.title"
+          />
+          <div
+            class="rating-circle"
+            :style="{ backgroundColor: getRatingColor(movie.vote_average) }"
+          >
+            {{ formatRating(movie.vote_average) }}
+          </div>
         </div>
 
+        <div class="movie-info">
+          <h3 class="movie-title">{{ movie.title }}</h3>
+          <p class="movie-date">{{ formatYear(movie.release_date) }}</p>
+        </div>
       </div>
     </div>
   </div>
-
 </template>
 
-
-
-<style>
-
+<style scoped>
 .slider-container {
   position: relative;
   width: 100%;
   height: 100vh;
   max-height: 900px;
   overflow: hidden;
-  color: var(--white);
+  color: white;
   font-family: "Inter", Arial, sans-serif;
 }
 
 
-/* tela inteira com imagem */
 .fullscreen-slide {
   position: absolute;
   width: 100%;
@@ -167,7 +167,6 @@ onBeforeUnmount(() => stopAutoplay());
   z-index: 1;
 }
 
-/* gradiente estilo Crunchyroll */
 .fullscreen-slide::after {
   content: "";
   position: absolute;
@@ -181,7 +180,7 @@ onBeforeUnmount(() => stopAutoplay());
   z-index: 2;
 }
 
-/* painel com textos */
+
 .info-panel {
   position: absolute;
   top: 20%;
@@ -217,7 +216,7 @@ onBeforeUnmount(() => stopAutoplay());
   font-size: 1.6rem;
 }
 
-/* botão principal */
+
 .info-btn-main {
   background-color: #EE4646;
   border: none;
@@ -226,6 +225,8 @@ onBeforeUnmount(() => stopAutoplay());
   font-family: "Michroma";
   width: 60%;
   margin-top: 2%;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .info-btn-main:hover {
@@ -233,7 +234,6 @@ onBeforeUnmount(() => stopAutoplay());
 }
 
 
-/*NAVEGAÇÃO DO SLIDE */
 .nav-btn {
   position: absolute;
   top: 0;
@@ -260,7 +260,6 @@ onBeforeUnmount(() => stopAutoplay());
 .right { right: 0; }
 
 
-/* ANIMAÇÕES*/
 .slide-fade-enter-active,
 .slide-fade-leave-active {
   transition: opacity 0.6s ease;
@@ -271,100 +270,141 @@ onBeforeUnmount(() => stopAutoplay());
   opacity: 0;
 }
 
-
-/*SECTION */
+/* LANÇAMENTOS */
 .releases-section {
-  padding: 0 20px;
-  background-color: black;
+  padding: 40px 20px;
   margin-bottom: 5%;
 }
 
 .section-title {
   color: #EE4646;
-  font-size:210%;
-  font-weight: bold;
-  margin-top: 5%;
-  margin-bottom: 15px;
+  font-size: 2rem;
+  font-weight: normal;
+  margin-bottom: 25px;
+  font-family: 'Michroma';
+  padding-left: 10px;
 }
 
-/*LISTA */
+
 .release-list {
   display: flex;
-  gap: 18px;
+  gap: 20px;
   overflow-x: auto;
-  padding-bottom: 10px;
+  padding: 10px 0 20px 10px;
   scroll-behavior: smooth;
 }
 
 .release-list::-webkit-scrollbar {
-  height: 10px;
-
+  height: 8px;
 }
 
 .release-list::-webkit-scrollbar-thumb {
-  border-radius: 12px;
+  border-radius: 4px;
   background: #EE4646;
-
 }
 
-/* --- MOVIE CARD --- */
+.release-list::-webkit-scrollbar-track {
+  background: rgba(224, 21, 21, 0.1);
+  border-radius: 4px;
+}
+
+
 .movie-card {
-  position: relative;
-  min-width: 220px;
-  width: 180px;
-  overflow: hidden;
-  background: #EE4646;
+  background: transparent;
+  border-radius: 8px;
+  overflow: visible;
+  transition: all 0.3s ease;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  flex-shrink: 0;
+  width: 200px;
 }
 
-/* IMAGEM */
+.movie-card:hover {
+  transform: scale(1.05);
+}
+
+.poster-container {
+  width: 100%;
+  height: 300px;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
 .movie-poster {
   width: 100%;
-  height: 260px;
+  height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 0.3s ease;
 }
 
-/* FOOTER */
-.release-footer {
-  background: #EE4646;
-  padding: 10px;
-  min-height: 100px;
-  color: #fff;
-  font-family: "Michroma", sans-serif;
-  transition: background 0.3s ease, transform 0.3s ease;
+.movie-card:hover .movie-poster {
+  transform: scale(1.08);
+}
+
+.rating-circle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 2px solid #0d253f;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.movie-info {
+  padding: 0 5px;
+  min-height: 60px;
 }
 
 .movie-title {
-  font-size: 15px;
-  margin-bottom: 6px;
-  line-height: 1.2;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 0.3rem 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: 'Source Sans Pro', Arial, sans-serif;
 }
 
-.movie-rating {
-  font-size: 14px;
-  margin-bottom: 4px;
+.movie-date {
+  font-size: 0.85rem;
+  color: #EE4646;
+  margin: 0;
+  font-family: 'Michroma';
+  font-weight: 400;
 }
 
-.movie-genres {
-  font-size: 12px;
-  opacity: 0.85;
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+  .movie-card {
+    width: 160px; /* Cards menores em mobile */
+  }
+
+  .poster-container {
+    height: 240px;
+  }
 }
 
-/* --- HOVER UNIVERSAL (Crunchyroll Style) --- */
-.movie-card:hover {
-  transform: scale(1.07);
-  box-shadow: 0 10px 25px rgba(255, 90, 40, 0.35);
+@media (max-width: 480px) {
+  .movie-card {
+    width: 140px; /* Cards ainda menores em telas muito pequenas */
+  }
+
+  .poster-container {
+    height: 210px;
+  }
 }
-
-.movie-card:hover .movie-poster {
-  transform: scale(1.15);
-}
-
-.movie-card:hover .release-footer {
-  transform: translateY(-4px);
-}
-
-
 </style>

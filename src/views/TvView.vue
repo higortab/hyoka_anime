@@ -1,238 +1,305 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/plugins/axios'
 import Loading from 'vue-loading-overlay'
 
-// estado
+const router = useRouter()
 const isLoading = ref(false)
 const series = ref([])
-const totalPages = ref(1)
-const page = ref(1)
-
-const currentGenre = ref(null)
 const searchQuery = ref("")
-const observerTarget = ref(null)
-
-let observer = null
-let isFetchingMore = false
-let searchDebounceTimer = null
+const currentGenre = ref(null)
 
 const subGenres = [
-  { id: 28, name: "Ação" },
-  { id: 12, name: "Aventura" },
+  { id: 16, name: "Animação" },
+  { id: 10759, name: "Ação & Aventura" },
   { id: 35, name: "Comédia" },
   { id: 18, name: "Drama" },
-  { id: 14, name: "Fantasia" },
-  { id: 878, name: "Ficção Científica" },
-  { id: 10749, name: "Romance" },
-  { id: 27, name: "Terror" },
+  { id: 10765, name: "Ficção Científica & Fantasia" },
+  { id: 9648, name: "Mistério" },
+  { id: 10762, name: "Infantil" },
+  { id: 10763, name: "Notícias" },
+  { id: 10764, name: "Reality Show" },
+  { id: 10767, name: "Talk Show" },
+  { id: 10768, name: "Guerra & Política" },
 ]
 
-// Helper: monta string para with_genres (usa OR entre ids)
-function buildWithGenresParam() {
-  if (!currentGenre.value) return 16 // só Animation
-  const item = subGenres.find(g => g.id === currentGenre.value)
-  if (!item) return 16
-  // garante que 16 (Animation) esteja incluído junto com os tmdbIds (uso OR)
-  const allIds = Array.from(new Set([16, ...item.tmdbIds]))
-  // OR é representado por '|' no discover endpoint
-  return allIds.join('|')
-}
-
-// Função principal: busca via discover (padrão) ou search (quando houver query)
-async function fetchFromApi(isLoadMore = false) {
-  if (isFetchingMore) return
-  isFetchingMore = true
-  isLoading.value = !isLoadMore
+async function listAnimeSeries(extraGenreId = null) {
+  isLoading.value = true
 
   try {
-    let response
+    const response = await api.get("discover/tv", {
+      params: {
+        with_genres: extraGenreId ? `16,${extraGenreId}` : 16,
+        with_origin_country: "JP",
+        with_original_language: "ja",
+        language: "pt-BR",
+        sort_by: "popularity.desc"
+      }
+    })
 
-    // Se houver query de busca, usar search/tv (pesquisa global)
-    if (searchQuery.value && searchQuery.value.trim().length > 0) {
-      response = await api.get("search/tv", {
-        params: {
-          query: searchQuery.value.trim(),
-          language: "pt-BR",
-          page: page.value,
-          include_adult: false,
-        }
-      })
-    } else {
-      // discover com with_genres montado (inclui 16 e IDs mapeados)
-      response = await api.get("discover/tv", {
-        params: {
-          with_genres: buildWithGenresParam(),
-          with_origin_country: "JP",
-          with_original_language: "ja",
-          language: "pt-BR",
-          sort_by: "popularity.desc",
-          page: page.value
-        }
-      })
-    }
-
-    let results = response.data.results || []
-
-    // OBS: alguns títulos podem não ter poster_path ou nome no campo `name` (usar fallback)
-    results = results.map(r => ({
-      id: r.id,
-      name: r.name ?? r.original_name ?? r.title ?? "—",
-      poster_path: r.poster_path,
-      genre_ids: r.genre_ids || [],
-      overview: r.overview || "",
-      original_name: r.original_name || ""
-    }))
-
-    if (isLoadMore) {
-      // evita duplicatas por id
-      const existingIds = new Set(series.value.map(s => s.id))
-      const newItems = results.filter(r => !existingIds.has(r.id))
-      series.value = [...series.value, ...newItems]
-    } else {
-      series.value = results
-    }
-
-    totalPages.value = response.data.total_pages || 1
-  } catch (err) {
-    console.error("Erro ao buscar séries:", err)
+    series.value = response.data.results
+    currentGenre.value = extraGenreId
+  } catch (error) {
+    console.error('Erro ao buscar séries:', error)
+    series.value = []
   } finally {
     isLoading.value = false
-    isFetchingMore = false
   }
 }
 
-// wrapper que decide se é load more
-function listAnimeSeries(isLoadMore = false) {
-  fetchFromApi(isLoadMore)
+function openSerie(serieId) {
+  router.push({ name: 'TvDetail', params: { id: serieId } })
 }
 
-// watch: ao mudar gênero -> reset página e lista e buscar
-watch(currentGenre, () => {
-  page.value = 1
-  series.value = []
-  listAnimeSeries(false)
-})
+async function searchAnime() {
+  if (!searchQuery.value.trim()) {
+    listAnimeSeries(currentGenre.value)
+    return
+  }
 
-// watch: busca com debounce, reset pagina/lista
-watch(searchQuery, () => {
-  // debounce simples: 500ms
-  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
-  searchDebounceTimer = setTimeout(() => {
-    page.value = 1
+  isLoading.value = true
+
+  try {
+    const response = await api.get("search/tv", {
+      params: {
+        query: searchQuery.value,
+        language: "pt-BR",
+        sort_by: "popularity.desc"
+      }
+    })
+
+    series.value = response.data.results.filter(serie =>
+      serie.genre_ids?.includes(16) &&
+      serie.original_language === "ja"
+    )
+  } catch (error) {
+    console.error('Erro na busca:', error)
     series.value = []
-    listAnimeSeries(false)
-  }, 500)
-})
+  } finally {
+    isLoading.value = false
+  }
+}
 
-// Observer para infinite scroll
-function initObserver() {
-  observer = new IntersectionObserver(entries => {
-    const entry = entries[0]
-    if (entry && entry.isIntersecting && page.value < totalPages.value && !isFetchingMore) {
-      page.value++
-      listAnimeSeries(true)
-    }
-  }, {
-    root: null,
-    rootMargin: '200px', // carrega antes de chegar no fim
-    threshold: 0.1
-  })
+function getImageUrl(posterPath) {
+  return posterPath
+    ? `https://image.tmdb.org/t/p/w300${posterPath}` // w300 para melhor qualidade
+    : '/placeholder-poster.jpg'
+}
 
-  if (observerTarget.value) observer.observe(observerTarget.value)
+function formatRating(voteAverage) {
+  return voteAverage ? voteAverage.toFixed(1) : 'N/A'
+}
+
+function formatYear(firstAirDate) {
+  return firstAirDate
+    ? new Date(firstAirDate).getFullYear()
+    : 'N/A'
+}
+
+function getRatingColor(voteAverage) {
+  if (voteAverage >= 8) return '#21d07a'
+  if (voteAverage >= 7) return '#d2d531'
+  if (voteAverage >= 6) return '#f9c22e'
+  return '#e44d4d'
 }
 
 onMounted(() => {
-  listAnimeSeries(false)
-  initObserver()
-})
-
-onBeforeUnmount(() => {
-  if (observer && observerTarget.value) observer.unobserve(observerTarget.value)
+  listAnimeSeries()
 })
 </script>
 
 <template>
-  <h1>Séries de Anime</h1>
-
   <loading v-model:active="isLoading" is-full-page />
 
-  <input
-    v-model="searchQuery"
-    placeholder="Buscar anime (use 3+ caracteres para melhores resultados)..."
-    class="search-input"
-  />
+  <div class="series">
+    <!-- Sidebar de gêneros -->
+    <div class="genre-list">
+      <input
+        v-model="searchQuery"
+        @input="searchAnime"
+        placeholder="Buscar série de anime"
+        class="search-input"
+      />
+      <span
+        v-for="genre in subGenres"
+        :key="genre.id"
+        @click="listAnimeSeries(genre.id)"
+        :class="{ active: genre.id === currentGenre }"
+        class="genre-item"
+      >
+        {{ genre.name }}
+      </span>
+    </div>
 
-  <div class="genre-list">
-    <span
-      v-for="genre in subGenres"
-      :key="genre.id"
-      @click="() => { page = 1; currentGenre = genre.id }"
-      :class="{ active: genre.id === currentGenre }"
-      class="genre-item"
-    >
-      {{ genre.name }}
-    </span>
+    <!-- Lista de séries -->
+    <div class="serie-list">
+      <div v-for="serie in series" :key="serie.id" class="serie-card" @click="openSerie(serie.id)">
+        <div class="poster-container">
+          <img
+            :src="getImageUrl(serie.poster_path)"
+            :alt="serie.name"
+            class="poster-image"
+          />
+          <div class="rating-circle" :style="{ backgroundColor: getRatingColor(serie.vote_average) }">
+            {{ formatRating(serie.vote_average) }}
+          </div>
+        </div>
 
-    <span @click="() => { page = 1; currentGenre = null }" :class="{ active: currentGenre === null }" class="genre-item">
-      Todos
-    </span>
-  </div>
-
-  <div class="movie-list">
-    <div v-for="s in series" :key="s.id" class="movie-card">
-      <img :src=" s.poster_path ? `https://image.tmdb.org/t/p/w500${s.poster_path}` : 'https://via.placeholder.com/150x225?text=Sem+Imagem' " />
-      <p class="movie-title">{{ s.name }}</p>
-      <!-- mostra gêneros como IDs (pode trocar para nomes se quiser buscar /genre/tv/list) -->
-      <small v-if="s.genre_ids && s.genre_ids.length">Genres: {{ s.genre_ids.join(', ') }}</small>
+        <div class="serie-info">
+          <h3 class="serie-title">{{ serie.name }}</h3>
+          <p class="serie-date">{{ formatYear(serie.first_air_date) }}</p>
+        </div>
+      </div>
     </div>
   </div>
-
-  <!-- elemento invisível para infinite scroll -->
-  <div ref="observerTarget" class="scroll-trigger"></div>
 </template>
 
 <style scoped>
-.genre-list {
+.series {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 20px 0;
+  gap: 2rem;
+  padding: 0 3%;
+  background-color: black;
+  min-height: 100vh;
 }
+
+.genre-list {
+  height: fit-content;
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  background-color: #EE4646;
+  padding: 1.5rem 1rem;
+  border-radius: 8px;
+  font-family: 'Michroma';
+  margin-top: 3%;
+  margin-bottom: 3%;
+}
+
 .genre-item {
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: #eee;
+  padding: 2% 3%;
+  color: white;
+  font-size: 100%;
+  transition: all 0.2s ease;
+  margin-bottom: 2%;
+  cursor: pointer;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.genre-item:hover,
+.genre-item.active {
+  background-color: #c71a1a;
+  color: white;
+  font-weight: 600;
+}
+
+input {
+  background-color: #EE4646;
+  border: 2px solid black;
+  border-radius: 20px;
+  height: 50px;
+  width: 100%;
+  padding: 0 1rem;
+  margin-bottom: 1.5rem;
+  color: white;
+  font-family: 'Michroma';
+  font-size: 0.9rem;
+}
+
+input::placeholder {
+  color: rgb(209, 207, 207);
+}
+
+input:focus {
+  outline: none;
+  border-color: black;
+}
+
+.serie-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+/* Card */
+.serie-card {
+  background: transparent;
+  border-radius: 8px;
+  overflow: visible;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
-.genre-item.active {
-  background: #008cff;
-  color: white;
+
+.serie-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0.5rem #EE4646;
 }
-.search-input {
-  width: 100%;
-  padding: 10px;
-  margin: 15px 0;
+
+.poster-container {
+  position: relative;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  overflow: hidden;
+  box-shadow: 0 4px 8px #EE4646(0, 0, 0, 0.3);
+  margin-bottom: 0.8rem;
 }
-.movie-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 150px);
-  gap: 20px;
-}
-.movie-card img {
-  width: 150px;
-  height: 225px;
+
+.poster-image {
+  width: 100%;
+  height: auto;
   object-fit: cover;
-  border-radius: 8px;
+  display: block;
+  transition: transform 0.3s ease;
 }
-.movie-title {
-  text-align: center;
-  margin-top: 8px;
+
+.serie-card:hover .poster-image {
+  transform: scale(1.1);
+
 }
-.scroll-trigger {
-  width: 100%;
-  height: 1px;
+
+.rating-circle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #EE4646;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border: 2px solid #0d253f;
+  box-shadow: 0 2px 4px #EE4646(0, 0, 0, 0.3);
 }
+
+.serie-info {
+  padding: 0 0.2rem;
+}
+
+.serie-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 0.3rem 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: 'Source Sans Pro', Arial, sans-serif;
+}
+
+.serie-date {
+  font-size: 0.9rem;
+  color: #EE4646;
+  margin: 0;
+  font-family: 'Source Sans Pro', Arial, sans-serif;
+  font-weight: 400;
+}
+
 </style>

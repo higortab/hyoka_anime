@@ -103,7 +103,10 @@ onBeforeUnmount(() => stopAutoplay());
     <div class="info-panel">
       <h1>{{ movies[currentIndex].title }}</h1>
       <p class="overview">{{ movies[currentIndex].overview || "Sem descrição disponível." }}</p>
-      <p class="rating">⭐ {{ movies[currentIndex].vote_average.toFixed(1) }}</p>
+      <p class="rating">  <img src="/HEADER/star.png" style="width: 5%; height: auto;">
+  {{ movies[currentIndex].vote_average.toFixed(1) }}
+
+      </p>
       <button class="info-btn-main" @click="openMovie(movies[currentIndex].id)">
         Veja informações sobre o filme
       </button>
@@ -212,8 +215,9 @@ onBeforeUnmount(() => stopAutoplay());
   text-overflow: ellipsis;
 }
 
-.rating {
-  font-size: 1.6rem;
+.rating p {
+  width: 180%;
+  font-weight: bold;
 }
 
 
@@ -373,7 +377,6 @@ onBeforeUnmount(() => stopAutoplay());
   margin: 0 0 0.3rem 0;
   line-height: 1.3;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-family: 'Source Sans Pro', Arial, sans-serif;
@@ -385,26 +388,5 @@ onBeforeUnmount(() => stopAutoplay());
   margin: 0;
   font-family: 'Michroma';
   font-weight: 400;
-}
-
-/* Responsividade para telas menores */
-@media (max-width: 768px) {
-  .movie-card {
-    width: 160px; /* Cards menores em mobile */
-  }
-
-  .poster-container {
-    height: 240px;
-  }
-}
-
-@media (max-width: 480px) {
-  .movie-card {
-    width: 140px; /* Cards ainda menores em telas muito pequenas */
-  }
-
-  .poster-container {
-    height: 210px;
-  }
 }
 </style>

@@ -295,7 +295,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .tv-page {
   width: 100%;
   color: white;

@@ -152,7 +152,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .filmes {
   display: flex;
   gap: 2rem;

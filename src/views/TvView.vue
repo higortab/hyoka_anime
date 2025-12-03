@@ -155,7 +155,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .series {
   display: flex;
   gap: 2rem;

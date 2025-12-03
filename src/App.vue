@@ -36,7 +36,7 @@
   </footer>
 </template>
 
-<style >
+<style scoped>
 header {
   height: 8%;
   display: flex;
